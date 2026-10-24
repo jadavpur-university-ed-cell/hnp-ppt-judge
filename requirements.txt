@@ -6,5 +6,7 @@ pyyaml
 python-dotenv
 google-genai
 groq
+langgraph
+langgraph-checkpoint-sqlite
 tqdm
 pytest

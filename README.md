@@ -8,7 +8,7 @@ An AI-assisted pipeline that reads hackathon pitch decks (PDF) and gives organiz
 
 ## Overview
 
-Every team submits a PDF deck. The pipeline:
+Every team submits a PDF deck. The stages below are wired together as a **LangGraph** graph, so the pipeline can branch, retry, and resume after a crash. The pipeline:
 
 1. **Checks** each PDF (size, page count, hidden text, prompt-injection attempts).
 2. **Extracts** the text and renders each page as a high-res image.
@@ -24,8 +24,11 @@ Every team submits a PDF deck. The pipeline:
 
 | Path | Purpose |
 |---|---|
-| `main.py` | Runs the full pipeline end to end |
+| `main.py` | Entry point: builds the graph and runs it over all decks |
 | `config.py` | Paths, model names, rate limits, score weights. Keep this identical for everyone on the final run |
+| `pipeline/graph.py` | LangGraph wiring: nodes, conditional routing, retries, checkpointing |
+| `pipeline/state.py` | The shared state object passed between nodes (deck path, pages, profile, scores, flags) |
+| `pipeline/llm.py` | Thin wrapper over the Gemini and Groq SDKs: rate-limit delays, caching, fallback between providers |
 | `pipeline/ingest.py` | File checks: size and page limits, hidden-text flags |
 | `pipeline/extract.py` | PyMuPDF: pulls text and renders page images |
 | `pipeline/vision.py` | Sends diagram pages to the vision model (Gemini) |
@@ -44,9 +47,27 @@ Every team submits a PDF deck. The pipeline:
 
 ---
 
+## How the graph works
+
+Each file in `pipeline/` is a node. LangGraph only controls the flow; the actual Gemini and Groq calls are plain SDK calls inside the nodes (via `llm.py`), so rate limits and caching stay under our control.
+
+```
+ingest -> extract -> vision -> profile -> score -> compare -> integrity -> export
+```
+
+Decision points handled by the graph:
+
+- **Text-less pages:** pages with no extractable text are routed to the vision model.
+- **Score variance:** if repeated scoring runs disagree too much, re-run scoring, or flag the deck as "needs human review".
+- **Provider fallback:** if Gemini is rate-limited, `llm.py` switches to Groq.
+- **Resume after a crash:** progress is checkpointed (SQLite), so a failure midway continues instead of restarting all 200+ decks.
+
+---
+
 ## Tech stack
 
 - **Language:** Python 3.10+
+- **Pipeline orchestration:** LangGraph (flow only, no LangChain agents)
 - **PDF reading and rendering:** PyMuPDF
 - **LLM and vision model:** Google Gemini API (free tier)
 - **Fast text LLM (extraction and scoring runs):** Groq API (free tier)
@@ -61,8 +82,8 @@ Every team submits a PDF deck. The pipeline:
 
 ```bash
 # 1. Clone the repo
-git clone <your-repo-url>
-cd hack-n-pitch-judge
+git clone https://github.com/jadavpur-university-ed-cell/hnp-ppt-judge
+cd hnp-ppt-judge
 
 # 2. (Recommended) create a virtual environment
 python -m venv venv

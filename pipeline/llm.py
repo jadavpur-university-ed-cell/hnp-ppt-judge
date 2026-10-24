@@ -1,0 +1,1 @@
+# Gemini/Groq wrapper: rate limits, cache, fallback
