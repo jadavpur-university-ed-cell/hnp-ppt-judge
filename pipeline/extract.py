@@ -1,0 +1,1 @@
+# PyMuPDF: text + page images

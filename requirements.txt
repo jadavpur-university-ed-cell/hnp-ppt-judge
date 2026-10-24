@@ -1,0 +1,10 @@
+pymupdf
+pandas
+numpy
+scikit-learn
+pyyaml
+python-dotenv
+google-genai
+groq
+tqdm
+pytest
