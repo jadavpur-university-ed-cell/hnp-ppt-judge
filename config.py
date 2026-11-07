@@ -6,6 +6,9 @@ ROOT_DIR = Path(__file__).resolve().parent
 DATA_DIR = ROOT_DIR / "data"
 CACHE_DIR = DATA_DIR / "cache"
 PAGES_DIR = DATA_DIR / "pages"
+INPUT_PDFS_DIR = DATA_DIR / "input_pdfs"
+OUTPUT_DIR = DATA_DIR / "output"
+CHECKPOINT_PATH = DATA_DIR / "checkpoints.sqlite"
 
 MAX_PDF_BYTES = int(os.getenv("MAX_PDF_BYTES", 25 * 1024 * 1024))
 MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", 30))
